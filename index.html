@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>光伏储能协同 EMS by 曲紫瑜</title>
+  <style>
+    :root{
+      --bg:#0b1220; --txt:#e7eefc; --muted:#a9b6d3;
+      --bd:rgba(255,255,255,.12);
+      --acc:#66e3ff; --good:#7CFF8A; --warn:#ffd36a; --bad:#ff6b6b;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", Arial;
+      background: radial-gradient(1200px 800px at 20% 0%, #14224a 0%, var(--bg) 55%, #050812 100%);
+      color:var(--txt);
+    }
+    .wrap{ max-width:1280px; margin:0 auto; padding:18px; }
+    h1{ margin:0 0 8px; font-size:20px; }
+    .sub{ margin:0 0 14px; color:var(--muted); line-height:1.55; font-size:12px; }
+    .grid{ display:grid; grid-template-columns: 460px 1fr; gap:14px; }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px; padding:14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .card h2{ margin:0 0 10px; font-size:14px; }
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .tab{
+      padding:8px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      color:var(--muted); cursor:pointer; user-select:none;
+      background: rgba(0,0,0,.12);
+      font-size:12px;
+    }
+    .tab.active{
+      color:var(--txt);
+      border-color: rgba(102,227,255,.35);
+      background: rgba(102,227,255,.16);
+    }
+    .section{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.16);
+      border-radius:12px;
+      padding:12px;
+      margin:10px 0;
+    }
+    .sectionTitle{
+      margin:0 0 8px; font-size:13px; font-weight:850;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    label{ display:block; font-size:12px; color:var(--muted); margin:8px 0 6px; }
+    select, input[type="number"], textarea{
+      width:100%;
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.25);
+      color: var(--txt);
+      box-sizing:border-box;
+      font-size:12px;
+    }
+    textarea{
+      min-height:64px; resize:vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+    }
+    input[type="range"]{ width:100%; }
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    button{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(102,227,255,.12);
+      color: var(--txt);
+      cursor:pointer;
+      font-weight:750;
+      font-size:12px;
+    }
+    button:hover{ background: rgba(102,227,255,.18); }
+    .muted{ color:var(--muted); }
+    .bad{ color:var(--bad); }
+    .good{ color:var(--good); }
+    .svgWrap{ width:100%; overflow:auto; }
+    .legend{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 0; color:var(--muted); font-size:12px; }
+    .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:6px; vertical-align:middle; }
+    .hr{ height:1px; background:rgba(255,255,255,.10); margin:12px 0; }
+
+    .kpi{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-top:12px; }
+    .kpi .box{
+      background: rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      padding:10px;
+    }
+    .kpi .t{ color:var(--muted); font-size:12px; }
+    .kpi .v{ font-size:16px; font-weight:900; margin-top:6px; }
+
+    table{ width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
+    th,td{ border-bottom:1px solid rgba(255,255,255,.10); padding:8px 6px; text-align:right; }
+    th{ color:var(--muted); font-weight:850; }
+    td:first-child, th:first-child{ text-align:center; }
+
+    details{ border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:10px 12px; margin-top:10px; background: rgba(0,0,0,.12); }
+    summary{ cursor:pointer; color:var(--muted); font-size:12px; font-weight:800; }
+    .smallHint{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+    @media (max-width: 1100px){ .grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>光伏储能协同 EMS by 曲紫瑜</h1>
+
+  <div class="grid">
+    <!-- LEFT: Inputs -->
+    <div class="card">
+      <h2>输入与约束</h2>
+
+      <div class="tabs">
+        <div class="tab active" id="tabPreset">预设生成</div>
+        <div class="tab" id="tabImport">导入 CSV</div>
+      </div>
+
+      <div id="panePreset">
+        <div class="row">
+          <div>
+            <label>随机模式</label>
+            <select id="randMode">
+              <option value="auto" selected>自动随机（每次不同）</option>
+              <option value="fixed">锁定随机种子（可复现）</option>
+            </select>
+          </div>
+          <div>
+            <label>随机种子（锁定模式生效）</label>
+            <input id="seed" type="number" value="42" min="0" step="1" />
+          </div>
+        </div>
+      </div>
+
+      <div id="paneImport" style="display:none;">
+        <label>导入 CSV（24 行；列：hour, load_kw, pv_kw；可选 price_per_kwh）</label>
+        <input id="csvFile" type="file" accept=".csv,text/csv" />
+        <div class="btns">
+          <button id="btnLoadCSV">读取并预览</button>
+          <button id="btnTemplate">下载模板</button>
+        </div>
+        <label>预览/编辑区</label>
+        <textarea id="csvPreview"></textarea>
+        <div class="btns">
+          <button id="btnApplyPreview">应用导入数据</button>
+        </div>
+      </div>
+
+      <!-- Load -->
+      <div class="section">
+        <div class="sectionTitle"><span>负荷 Load</span></div>
+        <div class="row">
+          <div>
+            <label>类型</label>
+            <select id="loadPreset">
+              <option value="res">居民型</option>
+              <option value="com">商业型</option>
+              <option value="ind">工业型</option>
+            </select>
+          </div>
+          <div>
+            <label>负荷等级缩放</label>
+            <input id="loadScale" type="range" min="1" max="10" step="0.1" value="4.0" />
+            <div class="smallHint">当前：<span id="loadScaleLbl"></span></div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>扰动强度</label>
+            <input id="loadVar" type="range" min="0" max="1" step="0.05" value="0.30" />
+            <div class="smallHint">当前：<span id="loadVarLbl"></span></div>
+          </div>
+          <div>
+            <label>峰值漂移（小时，±）</label>
+            <input id="loadShift" type="number" value="1" min="0" max="4" step="1" />
+          </div>
+        </div>
+      </div>
+
+      <!-- PV -->
+      <div class="section">
+        <div class="sectionTitle"><span>光伏 PV</span></div>
+        <div class="row">
+          <div>
+            <label>天气</label>
+            <select id="pvWeather">
+              <option value="clear">晴天</option>
+              <option value="cloudy">多云</option>
+              <option value="overcast">阴天</option>
+            </select>
+          </div>
+          <div>
+            <label>装机容量（kW）</label>
+            <input id="pvCap" type="range" min="0" max="50" step="0.5" value="15" />
+            <div class="smallHint">当前：<span id="pvCapLbl"></span></div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>天气不确定性</label>
+            <input id="pvVar" type="range" min="0" max="1" step="0.05" value="0.55" />
+            <div class="smallHint">当前：<span id="pvVarLbl"></span></div>
+          </div>
+          <div>
+            <label>短时波动</label>
+            <input id="pvSpike" type="range" min="0" max="1" step="0.05" value="0.35" />
+            <div class="smallHint">当前：<span id="pvSpikeLbl"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tariff -->
+      <div class="section">
+        <div class="sectionTitle"><span>电价/政策 Tariff</span></div>
+        <div class="row">
+          <div>
+            <label>电价模板</label>
+            <select id="pricePreset">
+              <option value="tou">TOU（峰谷阶梯）</option>
+              <option value="rt">类实时（波动）</option>
+              <option value="flat">常数电价</option>
+            </select>
+          </div>
+          <div>
+            <label>波动强度（仅 RT）</label>
+            <input id="priceVol" type="range" min="0" max="1" step="0.05" value="0.35" />
+            <div class="smallHint">当前：<span id="priceVolLbl"></span></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>上网策略</label>
+            <select id="exportMode">
+              <option value="ban">禁止上网（零逆流）</option>
+              <option value="ratio">按购电价比例</option>
+              <option value="fixed">固定上网电价</option>
+            </select>
+          </div>
+          <div>
+            <label>上网参数（比例或 $/kWh）</label>
+            <input id="exportValue" type="number" value="0" min="0" step="0.01" />
+          </div>
+        </div>
+
+        <label>购电电价数组（24 个值，$/kWh，可编辑）</label>
+        <textarea id="priceArray"></textarea>
+        <div class="btns">
+          <button id="btnFillPrice">按模板生成电价</button>
+          <button id="btnApplyPrice">应用电价（覆盖）</button>
+        </div>
+
+        <details>
+          <summary>高级：固定费 / 需量电费（可选）</summary>
+          <div class="row" style="margin-top:8px;">
+            <div>
+              <label>固定费（$/day）</label>
+              <input id="fixedCharge" type="number" value="0" min="0" step="0.1" />
+            </div>
+            <div>
+              <label>需量电费（$/kW·day）</label>
+              <input id="demandRate" type="number" value="0" min="0" step="0.5" />
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Battery & Grid -->
+      <div class="section">
+        <div class="sectionTitle"><span>储能/并网 Battery & Grid</span></div>
+        <div class="row">
+          <div>
+            <label>容量（kWh）</label>
+            <input id="batCap" type="number" value="18" min="0" step="1" />
+          </div>
+          <div>
+            <label>功率上限（kW）</label>
+            <input id="batPmax" type="number" value="6" min="0" step="0.5" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>往返效率 η_rt</label>
+            <input id="etaRt" type="number" value="0.90" min="0.5" max="1" step="0.01" />
+          </div>
+          <div>
+            <label>初始 SOC（%）</label>
+            <input id="soc0" type="number" value="50" min="0" max="100" step="1" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Reserve SOC（%）</label>
+            <input id="socMin" type="number" value="15" min="0" max="100" step="1" />
+          </div>
+          <div style="display:flex;align-items:end;gap:8px;">
+            <input id="cyclic" type="checkbox" checked />
+            <label style="margin:0;color:var(--muted);font-size:12px;">期末 SOC 回到初始</label>
+          </div>
+        </div>
+
+        <details>
+          <summary>高级：并网限额 / 电池折旧（可选）</summary>
+          <div class="row" style="margin-top:8px;">
+            <div>
+              <label>最大购电功率（kW，0=不限制）</label>
+              <input id="importLimit" type="number" value="0" min="0" step="0.5" />
+            </div>
+            <div>
+              <label>最大上网功率（kW，0=不限制）</label>
+              <input id="exportLimit" type="number" value="0" min="0" step="0.5" />
+            </div>
+          </div>
+          <label>折旧成本（$/kWh throughput）</label>
+          <input id="degCost" type="number" value="0" min="0" step="0.005" />
+        </details>
+      </div>
+
+      <div class="btns">
+        <button id="btnGenerate">生成/刷新</button>
+        <button id="btnOptimize">运行优化</button>
+        <button id="btnExport">导出结果 CSV</button>
+        <button id="btnSave">保存项目</button>
+        <button id="btnLoad">加载项目</button>
+      </div>
+
+      <div class="smallHint" id="warnBox"></div>
+    </div>
+
+    <!-- RIGHT: Outputs -->
+    <div class="card">
+      <h2>结果</h2>
+
+      <div class="svgWrap">
+        <svg id="chart1" width="920" height="320" viewBox="0 0 920 320"></svg>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#66e3ff;"></span>Load</span>
+        <span><span class="dot" style="background:#ffd36a;"></span>PV</span>
+        <span><span class="dot" style="background:#a9b6d3;"></span>Net（无储能）</span>
+        <span><span class="dot" style="background:#7CFF8A;"></span>Grid import（优化后）</span>
+        <span><span class="dot" style="background:#ff6b6b;"></span>P_bat（放电+ / 充电-）</span>
+      </div>
+
+      <div class="svgWrap" style="margin-top:12px;">
+        <svg id="chart2" width="920" height="260" viewBox="0 0 920 260"></svg>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#7CFF8A;"></span>SOC</span>
+        <span><span class="dot" style="background:#ffd36a;"></span>Price（归一化）</span>
+      </div>
+
+      <div class="kpi">
+        <div class="box">
+          <div class="t">无储能总成本</div>
+          <div class="v" id="kpiBase">$ -</div>
+        </div>
+        <div class="box">
+          <div class="t">优化后总成本</div>
+          <div class="v" id="kpiOpt">$ -</div>
+        </div>
+        <div class="box">
+          <div class="t">节省</div>
+          <div class="v" id="kpiSave">$ -</div>
+        </div>
+        <div class="box">
+          <div class="t">最大购电功率（kW）</div>
+          <div class="v" id="kpiPeak">-</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div id="billBox" class="muted" style="font-size:12px;"></div>
+
+      <div id="tableWrap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/** ================= Utils ================= **/
+const HOURS=[...Array(24)].map((_,i)=>i);
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+function fmtMoney(x){ return "$ " + x.toFixed(2); }
+function warn(msg){
+  const box=document.getElementById("warnBox");
+  if(!msg){ box.innerHTML=""; return; }
+  box.innerHTML = `<span class="bad">提示：</span> ${msg}`;
+}
+function makeRng(seed){
+  let x=(seed>>>0)||1;
+  return ()=>{ x^=x<<13; x>>>=0; x^=x>>17; x>>>=0; x^=x<<5; x>>>=0; return (x>>>0)/4294967296; };
+}
+function randn(rng){
+  let u=0,v=0;
+  while(u===0) u=rng();
+  while(v===0) v=rng();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function parseNumberList(text, expectedLen=24){
+  const arr=text.split(/[, \n\r\t]+/).map(s=>s.trim()).filter(Boolean).map(Number).filter(v=>Number.isFinite(v));
+  return (arr.length===expectedLen) ? arr : null;
+}
+
+/** ============ Preset base curves ============ **/
+function baseLoadCurve(type){
+  if(type==="res"){
+    return [1.4,1.3,1.2,1.2,1.3,1.6,2.0,2.2,2.0,1.9,2.0,2.1,2.2,2.2,2.3,2.4,2.6,3.0,3.6,3.9,3.4,2.7,2.1,1.7];
+  }
+  if(type==="com"){
+    // ✅ 修复：全是纯数字字面量，保证可运行
+    return [1.2,1.1,1.0,1.0,1.0,1.1,1.4,2.0,2.6,3.0,3.2,3.3,3.4,3.4,3.3,3.2,3.0,2.6,2.2,1.8,1.6,1.4,1.3,1.2];
+  }
+  // ind
+  return [2.2,2.1,2.1,2.0,2.1,2.3,2.8,3.4,3.8,4.0,4.1,4.2,4.2,4.1,4.1,4.0,4.0,3.9,3.6,3.2,2.9,2.7,2.5,2.3];
+}
+
+function bellPV(rng, weather, pvVar, pvSpike){
+  const shift = (weather==="clear") ? (randn(rng)*0.25) : (randn(rng)*0.6);
+  const width = (weather==="overcast") ? (12*(1.15 + 0.10*randn(rng))) : (12*(1.00 + 0.08*randn(rng)));
+  const dayAtt = (weather==="clear") ? (0.90 + 0.12*rng()) : (weather==="cloudy" ? (0.55 + 0.25*rng()) : (0.25 + 0.20*rng()));
+  const cloudStrength = (weather==="clear") ? 0.10 : (weather==="cloudy" ? 0.55 : 0.75);
+
+  const base = HOURS.map(h=>{
+    const start=6+shift, end=start+width;
+    if(h<start || h>end) return 0;
+    const x=(h-start)/(end-start);
+    return Math.pow(Math.sin(Math.PI*x), 1.6);
+  });
+
+  let cloud=0.0;
+  const out = base.map(v=>{
+    if(v<=0) return 0;
+    cloud = 0.75*cloud + 0.25*(randn(rng));
+    const fluct = clamp(1 - cloudStrength*pvVar*(0.35 + 0.45*Math.abs(cloud)), 0.05, 1.0);
+
+    let spike=1.0;
+    if(rng() < 0.10 + 0.10*pvSpike) spike *= (1 - (0.25 + 0.55*pvSpike)*rng());
+    if(rng() < 0.06 + 0.08*pvSpike) spike *= (1 + (0.08 + 0.18*pvSpike)*rng());
+    return v * dayAtt * fluct * spike;
+  });
+
+  const sm = out.map((v,i)=>{
+    const a=out[Math.max(0,i-1)], b=out[i], c=out[Math.min(23,i+1)];
+    return 0.2*a + 0.6*b + 0.2*c;
+  });
+  return sm.map(v=>Math.max(0,v));
+}
+
+/** ============ PRICE: TOU is STRICT step curve (NO randomness) ============ **/
+function makePricePreset(rng, type, vol){
+  if(type==="flat") return Array(24).fill(0.18);
+
+  if(type==="tou"){
+    return HOURS.map(h=>{
+      if(h<=6) return 0.12;
+      if(h>=17 && h<=21) return 0.32;
+      return 0.18;
+    });
+  }
+
+  // rt
+  return HOURS.map(h=>{
+    const daily = 0.18 + 0.06*Math.sin((2*Math.PI*(h-14))/24);
+    const noise = (rng()-0.5) * (0.10*vol);
+    const spiky = (rng()<0.08) ? (0.08*vol*rng()) : 0;
+    return Math.max(0.06, daily + noise + spiky);
+  });
+}
+
+/** ============ Chart (SVG) ============ **/
+function clearSvg(svg){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+function svgText(svg,x,y,str,opts={}){
+  const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute("x",x); t.setAttribute("y",y);
+  t.setAttribute("fill", opts.fill||"rgba(231,238,252,.85)");
+  t.setAttribute("font-size", opts.size||"12");
+  t.setAttribute("font-weight", opts.weight||"700");
+  t.textContent=str; svg.appendChild(t);
+}
+function svgLine(svg,x1,y1,x2,y2,opts={}){
+  const l=document.createElementNS("http://www.w3.org/2000/svg","line");
+  l.setAttribute("x1",x1); l.setAttribute("y1",y1);
+  l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+  l.setAttribute("stroke", opts.stroke||"rgba(255,255,255,.16)");
+  l.setAttribute("stroke-width", opts.w||"1");
+  svg.appendChild(l);
+}
+function svgPath(svg,d,opts={}){
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("d",d);
+  p.setAttribute("fill","none");
+  p.setAttribute("stroke", opts.stroke||"#66e3ff");
+  p.setAttribute("stroke-width", opts.w||"2.2");
+  p.setAttribute("opacity", opts.op||"1");
+  if(opts.dash) p.setAttribute("stroke-dasharray", opts.dash);
+  svg.appendChild(p);
+}
+function plotSeries(svg, series, title, yLabel){
+  clearSvg(svg);
+  const W=svg.viewBox.baseVal.width||+svg.getAttribute("width");
+  const H=svg.viewBox.baseVal.height||+svg.getAttribute("height");
+  const pad={l:52,r:18,t:18,b:34};
+
+  let ymin=Infinity, ymax=-Infinity;
+  series.forEach(s=>s.data.forEach(v=>{ if(Number.isFinite(v)){ ymin=Math.min(ymin,v); ymax=Math.max(ymax,v); } }));
+  if(ymin===Infinity){ ymin=0; ymax=1; }
+  if(ymax-ymin<1e-6){ ymax=ymin+1; }
+  const m=(ymax-ymin)*0.08; ymin-=m; ymax+=m;
+
+  const xmap=i=>pad.l + (W-pad.l-pad.r)*(i/23);
+  const ymap=v=>pad.t + (H-pad.t-pad.b)*(1-(v-ymin)/(ymax-ymin));
+
+  for(let k=0;k<=5;k++){
+    const y=pad.t+(H-pad.t-pad.b)*k/5;
+    svgLine(svg,pad.l,y,W-pad.r,y,{stroke:"rgba(255,255,255,.10)"});
+    const val=(ymax-(ymax-ymin)*k/5).toFixed(1);
+    svgText(svg,6,y+4,val,{fill:"rgba(169,182,211,.9)",size:"11",weight:"800"});
+  }
+  for(let h=0;h<24;h+=3){
+    const x=xmap(h);
+    svgLine(svg,x,H-pad.b,x,H-pad.b+4,{stroke:"rgba(255,255,255,.18)"});
+    svgText(svg,x-6,H-10,String(h),{fill:"rgba(169,182,211,.9)",size:"11",weight:"800"});
+  }
+  svgText(svg,W-240,14,title,{fill:"rgba(231,238,252,.9)",size:"12",weight:"900"});
+  svgText(svg,pad.l,14,yLabel,{fill:"rgba(169,182,211,.9)",size:"11",weight:"900"});
+
+  series.forEach(s=>{
+    let d="";
+    s.data.forEach((v,i)=>{
+      const x=xmap(i), y=ymap(v);
+      d += (i===0?`M ${x} ${y}`:` L ${x} ${y}`);
+    });
+    svgPath(svg,d,{stroke:s.color,w:2.4,op:0.95,dash:s.dash||null});
+  });
+}
+
+/** ============ State ============ **/
+let state={
+  load:Array(24).fill(0),
+  pv:Array(24).fill(0),
+  price:Array(24).fill(0.18),
+  net:Array(24).fill(0),
+  pbat:Array(24).fill(0),
+  soc:Array(25).fill(0),
+  billBase:null,
+  billOpt:null
+};
+
+/** ============ Billing ============ **/
+function getPolicy(){
+  return {
+    exportMode:document.getElementById("exportMode").value,
+    exportValue:Number(document.getElementById("exportValue").value||0),
+    fixedCharge:Number(document.getElementById("fixedCharge").value||0),
+    demandRate:Number(document.getElementById("demandRate").value||0),
+  };
+}
+function exportPriceAtHour(h, importPrice){
+  const pol=getPolicy();
+  if(pol.exportMode==="ratio") return pol.exportValue * importPrice;
+  if(pol.exportMode==="fixed") return pol.exportValue;
+  return 0;
+}
+function computeBill(net, pbat, price){
+  const pol=getPolicy();
+  const importLimit=Number(document.getElementById("importLimit").value||0);
+  const exportLimit=Number(document.getElementById("exportLimit").value||0);
+
+  let energyCost=0, exportCredit=0, peakImport=0;
+  const gridImp=[], gridExp=[];
+  for(let t=0;t<24;t++){
+    const grid = net[t] - pbat[t];
+    const imp=Math.max(0,grid);
+    const exp=Math.max(0,-grid);
+    peakImport=Math.max(peakImport,imp);
+
+    const impP=price[t];
+    const expP=exportPriceAtHour(t, impP);
+    energyCost += impP*imp;
+    exportCredit += expP*exp;
+
+    gridImp.push(imp); gridExp.push(exp);
+
+    if(importLimit>0 && imp>importLimit+1e-6) {}
+    if(exportLimit>0 && exp>exportLimit+1e-6) {}
+  }
+  const demandCost = pol.demandRate * peakImport;
+  const total = (energyCost - exportCredit) + demandCost + pol.fixedCharge;
+  return {energyCost, exportCredit, demandCost, fixedCharge:pol.fixedCharge, total, peakImport, gridImp, gridExp};
+}
+
+/** ============ Optimization (DP) ============ **/
+function optimizeDP(){
+  warn("");
+  const pol=getPolicy();
+
+  const Cap=Number(document.getElementById("batCap").value||0);
+  const Pmax=Number(document.getElementById("batPmax").value||0);
+  const etaRt=clamp(Number(document.getElementById("etaRt").value||0.9),0.5,1);
+  const soc0Pct=clamp(Number(document.getElementById("soc0").value||50),0,100);
+  const socMinPct=clamp(Number(document.getElementById("socMin").value||0),0,100);
+  const cyclic=document.getElementById("cyclic").checked;
+
+  const importLimit=Number(document.getElementById("importLimit").value||0);
+  const exportLimit=Number(document.getElementById("exportLimit").value||0);
+  const degCost=Number(document.getElementById("degCost").value||0);
+
+  const net=state.net.slice();
+  const price=state.price.slice();
+
+  if(Cap<=1e-9 || Pmax<=1e-9){
+    state.pbat=Array(24).fill(0);
+    state.soc=Array(25).fill(Cap*soc0Pct/100||0);
+    return;
+  }
+
+  const etaCh=Math.sqrt(etaRt), etaDis=Math.sqrt(etaRt);
+  const socInit=clamp(Cap*soc0Pct/100,0,Cap);
+  const socMin=clamp(Cap*socMinPct/100,0,Cap);
+
+  const N=90; const stepE=Cap/N;
+  const i0=Math.round(socInit/stepE);
+  const iMin=Math.round(socMin/stepE);
+
+  const stepP=Math.max(0.25, Pmax/24);
+  const actions=[];
+  for(let p=-Pmax;p<=Pmax+1e-9;p+=stepP) actions.push(p);
+
+  let M=0, gMax=0;
+  if(pol.demandRate>0){
+    const approxMax=Math.max(...net.map(v=>Math.max(0,v)))+Pmax;
+    gMax = importLimit>0 ? importLimit : approxMax*1.1 + 0.5;
+    gMax = Math.max(1,gMax);
+    M=70;
+  }
+  const width=M+1, size=(N+1)*width, INF=1e18;
+  const idx=(i,j)=>i*width+j;
+
+  const peakToIdx=(g)=>{
+    if(M===0) return 0;
+    const stepG=gMax/M;
+    return clamp(Math.round(g/stepG),0,M);
+  };
+  const idxToPeak=(j)=>{
+    if(M===0) return 0;
+    const stepG=gMax/M;
+    return j*stepG;
+  };
+
+  let dpNext=new Float64Array(size);
+  let dpCur=new Float64Array(size);
+  const choiceA=new Int16Array(24*size);
+  const choiceI=new Int16Array(24*size);
+  const choiceJ=new Int16Array(24*size);
+
+  for(let i=0;i<=N;i++){
+    for(let j=0;j<=M;j++){
+      const k=idx(i,j);
+      if(cyclic && i!==i0) dpNext[k]=INF;
+      else dpNext[k]=(pol.demandRate>0)?(pol.demandRate*idxToPeak(j)):0;
+    }
+  }
+
+  for(let t=23;t>=0;t--){
+    for(let i=0;i<=N;i++){
+      for(let j=0;j<=M;j++){
+        const k=idx(i,j);
+        dpCur[k]=INF;
+
+        const soc=i*stepE;
+        const peakSoFar=idxToPeak(j);
+
+        for(let ai=0;ai<actions.length;ai++){
+          const p=actions[ai];
+          let soc2=soc;
+
+          if(p>=0){
+            const eNeed=p/etaDis;
+            if(eNeed>soc+1e-9) continue;
+            soc2=soc-eNeed;
+          }else{
+            const eGain=(-p)*etaCh;
+            if(soc+eGain>Cap+1e-9) continue;
+            soc2=soc+eGain;
+          }
+
+          if(soc2 < iMin*stepE - 1e-9) continue;
+          const i2=clamp(Math.round(soc2/stepE),0,N);
+
+          const grid=net[t]-p;
+          const imp=Math.max(0,grid);
+          const exp=Math.max(0,-grid);
+
+          if(pol.exportMode==="ban" && exp>1e-9) continue;
+          if(importLimit>0 && imp>importLimit+1e-9) continue;
+          if(exportLimit>0 && exp>exportLimit+1e-9) continue;
+
+          const peak2=Math.max(peakSoFar, imp);
+          const j2=(M===0)?0:peakToIdx(peak2);
+
+          const impP=price[t];
+          const expP=exportPriceAtHour(t, impP);
+          const costEnergy=impP*imp - expP*exp;
+          const costDeg=degCost*Math.abs(p);
+
+          const kk=idx(i2,j2);
+          const v=costEnergy + costDeg + dpNext[kk];
+          if(v<dpCur[k]){
+            dpCur[k]=v;
+            const base=t*size + k;
+            choiceA[base]=ai;
+            choiceI[base]=i2;
+            choiceJ[base]=j2;
+          }
+        }
+      }
+    }
+    const tmp=dpNext; dpNext=dpCur; dpCur=tmp;
+  }
+
+  const pbat=Array(24).fill(0);
+  const soc=Array(25).fill(0);
+  soc[0]=i0*stepE;
+
+  let i=i0, j=0;
+  for(let t=0;t<24;t++){
+    const k=idx(i,j);
+    const base=t*size + k;
+    const ai=choiceA[base];
+    const i2=choiceI[base];
+    const j2=choiceJ[base];
+
+    const p=actions[ai];
+    pbat[t]=p;
+
+    const s=soc[t];
+    let s2=s;
+    if(p>=0) s2=s - (p/etaDis);
+    else s2=s + ((-p)*etaCh);
+    soc[t+1]=clamp(s2,0,Cap);
+
+    i=i2; j=j2;
+  }
+
+  state.pbat=pbat;
+  state.soc=soc;
+
+  if(!Number.isFinite(dpNext[idx(i0,0)]) || dpNext[idx(i0,0)]>=INF/2){
+    warn("当前约束可能不可行（例如：禁止上网且 PV 过大、Reserve SOC 过高、并网限额过严）。");
+  }
+}
+
+/** ============ Rendering ============ **/
+function renderTable(){
+  const wrap=document.getElementById("tableWrap");
+  const {load,pv,net,price,pbat,soc}=state;
+  let html=`<table><thead><tr>
+    <th>h</th><th>Load</th><th>PV</th><th>Net</th><th>P_bat</th>
+    <th>Import</th><th>Export</th><th>SOC</th><th>Price</th>
+  </tr></thead><tbody>`;
+  for(let t=0;t<24;t++){
+    const grid=net[t]-pbat[t];
+    const imp=Math.max(0,grid), exp=Math.max(0,-grid);
+    html+=`<tr>
+      <td>${t}</td>
+      <td>${load[t].toFixed(2)}</td>
+      <td>${pv[t].toFixed(2)}</td>
+      <td>${net[t].toFixed(2)}</td>
+      <td>${pbat[t].toFixed(2)}</td>
+      <td>${imp.toFixed(2)}</td>
+      <td>${exp.toFixed(2)}</td>
+      <td>${soc[t].toFixed(2)}</td>
+      <td>${price[t].toFixed(3)}</td>
+    </tr>`;
+  }
+  html+=`</tbody></table>`;
+  wrap.innerHTML=html;
+}
+
+function renderAll(){
+  state.net = state.load.map((v,i)=>v - state.pv[i]);
+
+  const basePbat=Array(24).fill(0);
+  state.billBase=computeBill(state.net, basePbat, state.price);
+  state.billOpt =computeBill(state.net, state.pbat, state.price);
+
+  document.getElementById("kpiBase").textContent=fmtMoney(state.billBase.total);
+  document.getElementById("kpiOpt").textContent =fmtMoney(state.billOpt.total);
+  const save=state.billBase.total - state.billOpt.total;
+  const ks=document.getElementById("kpiSave");
+  ks.textContent=fmtMoney(save);
+  ks.style.color=(save>=0)?"var(--good)":"var(--bad)";
+  document.getElementById("kpiPeak").textContent=state.billOpt.peakImport.toFixed(2);
+
+  const b0=state.billBase, b1=state.billOpt;
+  document.getElementById("billBox").innerHTML=`
+    <div>无储能：能量费 ${fmtMoney(b0.energyCost)} − 上网收益 ${fmtMoney(b0.exportCredit)} + 需量费 ${fmtMoney(b0.demandCost)} + 固定费 ${fmtMoney(b0.fixedCharge)} = <b>${fmtMoney(b0.total)}</b></div>
+    <div>优化后：能量费 ${fmtMoney(b1.energyCost)} − 上网收益 ${fmtMoney(b1.exportCredit)} + 需量费 ${fmtMoney(b1.demandCost)} + 固定费 ${fmtMoney(b1.fixedCharge)} = <b>${fmtMoney(b1.total)}</b></div>
+  `;
+
+  const gridImpOpt = state.billOpt.gridImp;
+  plotSeries(document.getElementById("chart1"), [
+    {data:state.load, color:"#66e3ff"},
+    {data:state.pv, color:"#ffd36a"},
+    {data:state.net, color:"#a9b6d3", dash:"6 5"},
+    {data:gridImpOpt, color:"#7CFF8A"},
+    {data:state.pbat, color:"#ff6b6b", dash:"6 5"},
+  ], "功率曲线（kW）", "kW");
+
+  const price=state.price;
+  const pmin=Math.min(...price), pmax=Math.max(...price);
+  const priceN=price.map(p=>(p-pmin)/(pmax-pmin+1e-9));
+  const soc24=state.soc.slice(0,24);
+  const socMax=Math.max(1,...soc24);
+  plotSeries(document.getElementById("chart2"), [
+    {data:soc24, color:"#7CFF8A"},
+    {data:priceN.map(v=>v*socMax*0.9), color:"#ffd36a", dash:"6 5"},
+  ], "SOC 与电价（归一化）", "kWh / scaled");
+
+  renderTable();
+}
+
+/** ============ Generation ============ **/
+function getRng(){
+  const mode=document.getElementById("randMode").value;
+  if(mode==="fixed"){
+    const seed=Number(document.getElementById("seed").value||0);
+    return makeRng(seed);
+  }
+  return makeRng((Date.now() & 0xffffffff)>>>0);
+}
+function shiftArray(arr, shift){
+  const n=arr.length;
+  const out=new Array(n).fill(0);
+  for(let i=0;i<n;i++){
+    const x=i-shift;
+    const x0=Math.floor(x);
+    const x1=x0+1;
+    const w=x-x0;
+    const v0=arr[((x0%n)+n)%n];
+    const v1=arr[((x1%n)+n)%n];
+    out[i]=(1-w)*v0 + w*v1;
+  }
+  return out;
+}
+
+function generatePresetCurves(){
+  const rng=getRng();
+
+  const loadType=document.getElementById("loadPreset").value;
+  const scale=Number(document.getElementById("loadScale").value);
+  const varL=Number(document.getElementById("loadVar").value);
+  const maxShift=Number(document.getElementById("loadShift").value);
+
+  let baseL=baseLoadCurve(loadType);
+  const sL=(maxShift>0)?((rng()*2-1)*maxShift):0;
+  baseL=shiftArray(baseL, sL);
+
+  const dayScale = (1 - 0.12*varL) + (0.24*varL)*rng();
+  let ar=0;
+  const load=baseL.map(v=>{
+    ar = 0.75*ar + 0.25*randn(rng);
+    const noise = varL*(0.06*randn(rng) + 0.04*ar);
+    return Math.max(0, v*scale*dayScale*(1+noise));
+  });
+
+  const weather=document.getElementById("pvWeather").value;
+  const pvCap=Number(document.getElementById("pvCap").value);
+  const pvVar=Number(document.getElementById("pvVar").value);
+  const pvSpike=Number(document.getElementById("pvSpike").value);
+  const pvNorm=bellPV(rng, weather, pvVar, pvSpike);
+  const pv=pvNorm.map(v=>v*pvCap);
+
+  const priceType=document.getElementById("pricePreset").value;
+  const vol=Number(document.getElementById("priceVol").value);
+  const price=makePricePreset(rng, priceType, vol);
+
+  state.load=load;
+  state.pv=pv;
+  state.price=price;
+
+  document.getElementById("priceArray").value = price.map(v=>v.toFixed(3)).join(", ");
+  state.pbat=Array(24).fill(0);
+  state.soc=Array(25).fill(0);
+}
+
+/** ============ CSV Import ============ **/
+function readCSVText(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  if(lines.length<2) return null;
+  const header=lines[0].split(",").map(s=>s.trim().toLowerCase());
+  const idxHour=header.indexOf("hour");
+  const idxLoad=header.indexOf("load_kw");
+  const idxPv=header.indexOf("pv_kw");
+  const idxPrice=header.indexOf("price_per_kwh");
+  if(idxHour<0 || idxLoad<0 || idxPv<0) return null;
+
+  const load=Array(24).fill(null);
+  const pv=Array(24).fill(null);
+  const price=Array(24).fill(null);
+
+  for(let r=1;r<lines.length;r++){
+    const cols=lines[r].split(",").map(s=>s.trim());
+    const h=Number(cols[idxHour]);
+    if(!Number.isFinite(h) || h<0 || h>23) continue;
+    const l=Number(cols[idxLoad]);
+    const p=Number(cols[idxPv]);
+    if(Number.isFinite(l)) load[h]=l;
+    if(Number.isFinite(p)) pv[h]=p;
+    if(idxPrice>=0){
+      const pr=Number(cols[idxPrice]);
+      if(Number.isFinite(pr)) price[h]=pr;
+    }
+  }
+  for(let h=0;h<24;h++){
+    if(load[h]==null) load[h]=0;
+    if(pv[h]==null) pv[h]=0;
+  }
+  const hasAnyPrice=price.some(v=>v!=null);
+  let priceOut=null;
+  if(hasAnyPrice){
+    priceOut=Array(24).fill(0.18);
+    for(let h=0;h<24;h++) priceOut[h]=(price[h]==null)?0.18:price[h];
+  }
+  return {load,pv,price:priceOut};
+}
+
+/** ============ UI & handlers ============ **/
+function syncLabels(){
+  document.getElementById("pvCapLbl").textContent=document.getElementById("pvCap").value;
+  document.getElementById("loadScaleLbl").textContent=document.getElementById("loadScale").value;
+  document.getElementById("loadVarLbl").textContent=document.getElementById("loadVar").value;
+  document.getElementById("pvVarLbl").textContent=document.getElementById("pvVar").value;
+  document.getElementById("pvSpikeLbl").textContent=document.getElementById("pvSpike").value;
+  document.getElementById("priceVolLbl").textContent=document.getElementById("priceVol").value;
+
+  const type=document.getElementById("pricePreset").value;
+  const vol=document.getElementById("priceVol");
+  vol.disabled = (type!=="rt");
+  vol.style.opacity = vol.disabled ? "0.45" : "1";
+}
+["pvCap","loadScale","loadVar","pvVar","pvSpike","priceVol","pricePreset"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", syncLabels);
+  document.getElementById(id).addEventListener("change", syncLabels);
+});
+
+function applyPriceFromTextarea(){
+  const arr=parseNumberList(document.getElementById("priceArray").value,24);
+  if(!arr){ warn("电价数组格式不对：请提供 24 个数，用逗号分隔。"); return false; }
+  state.price=arr;
+  return true;
+}
+
+function exportCSV(){
+  const {load,pv,net,price,pbat,soc}=state;
+  const rows=[["hour","load_kw","pv_kw","net_kw","pbat_kw","grid_import_kw","grid_export_kw","soc_kwh","price_per_kwh"]];
+  for(let t=0;t<24;t++){
+    const grid=net[t]-pbat[t];
+    const imp=Math.max(0,grid), exp=Math.max(0,-grid);
+    rows.push([t,load[t],pv[t],net[t],pbat[t],imp,exp,soc[t],price[t]]);
+  }
+  const csv=rows.map(r=>r.join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="ems_v4_1_results.csv";
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function saveProject(){
+  const cfg={
+    state,
+    ui:Object.fromEntries(Array.from(document.querySelectorAll("input,select,textarea"))
+      .filter(el=>el.id)
+      .map(el=>[el.id, (el.type==="checkbox")?el.checked:el.value]))
+  };
+  localStorage.setItem("ems_v4_1_project", JSON.stringify(cfg));
+  warn("已保存到本地浏览器。");
+}
+function loadProject(){
+  const raw=localStorage.getItem("ems_v4_1_project");
+  if(!raw){ warn("本地未找到保存项目。"); return; }
+  const cfg=JSON.parse(raw);
+  for(const [id,val] of Object.entries(cfg.ui||{})){
+    const el=document.getElementById(id);
+    if(!el) continue;
+    if(el.type==="checkbox") el.checked=val;
+    else el.value=val;
+  }
+  if(cfg.state) state=cfg.state;
+  syncLabels();
+  warn("已加载本地项目。");
+  renderAll();
+}
+
+/** Tabs **/
+function setTab(which){
+  document.getElementById("tabPreset").classList.toggle("active", which==="Preset");
+  document.getElementById("tabImport").classList.toggle("active", which==="Import");
+  document.getElementById("panePreset").style.display=(which==="Preset")?"":"none";
+  document.getElementById("paneImport").style.display=(which==="Import")?"":"none";
+}
+document.getElementById("tabPreset").onclick=()=>setTab("Preset");
+document.getElementById("tabImport").onclick=()=>setTab("Import");
+
+/** CSV import **/
+document.getElementById("btnTemplate").onclick=()=>{
+  const rows=[["hour","load_kw","pv_kw","price_per_kwh"]];
+  for(let h=0;h<24;h++) rows.push([h,"/*填写*/","/*填写*/","/*可选*/"]);
+  const csv=rows.map(r=>r.join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="ems_v4_1_input_template.csv";
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+document.getElementById("btnLoadCSV").onclick=async()=>{
+  const f=document.getElementById("csvFile").files?.[0];
+  if(!f){ warn("请选择 CSV 文件。"); return; }
+  const text=await f.text();
+  const parsed=readCSVText(text);
+  if(!parsed){ warn("CSV 解析失败：需包含 hour, load_kw, pv_kw。"); return; }
+  const rows=[["hour","load_kw","pv_kw","price_per_kwh"]];
+  for(let h=0;h<24;h++) rows.push([h, parsed.load[h], parsed.pv[h], parsed.price?parsed.price[h]:""]);
+  document.getElementById("csvPreview").value=rows.map(r=>r.join(",")).join("\n");
+  warn("已读取并生成预览。");
+};
+document.getElementById("btnApplyPreview").onclick=()=>{
+  const text=document.getElementById("csvPreview").value.trim();
+  const parsed=readCSVText(text);
+  if(!parsed){ warn("预览无法解析：请保持 CSV 表头与格式正确。"); return; }
+  state.load=parsed.load;
+  state.pv=parsed.pv;
+  if(parsed.price){
+    state.price=parsed.price;
+    document.getElementById("priceArray").value=state.price.map(v=>v.toFixed(3)).join(", ");
+  }
+  state.pbat=Array(24).fill(0);
+  state.soc=Array(25).fill(0);
+  warn("已应用导入数据。");
+  renderAll();
+};
+
+/** Price buttons **/
+document.getElementById("btnFillPrice").onclick=()=>{
+  const rng=getRng();
+  const type=document.getElementById("pricePreset").value;
+  const vol=Number(document.getElementById("priceVol").value);
+  const arr=makePricePreset(rng, type, vol);
+  document.getElementById("priceArray").value=arr.map(v=>v.toFixed(3)).join(", ");
+  warn("");
+};
+document.getElementById("btnApplyPrice").onclick=()=>{
+  if(applyPriceFromTextarea()){
+    warn("电价已应用。");
+    renderAll();
+  }
+};
+
+/** Main buttons **/
+document.getElementById("btnGenerate").onclick=()=>{
+  syncLabels();
+  const importMode = document.getElementById("paneImport").style.display !== "none";
+  if(importMode){
+    if(document.getElementById("priceArray").value.trim()){
+      applyPriceFromTextarea();
+    }
+    warn("导入模式：未改动 load/pv；如需更新电价请使用“按模板生成电价”。");
+  }else{
+    generatePresetCurves();
+    warn("");
+  }
+  renderAll();
+};
+document.getElementById("btnOptimize").onclick=()=>{
+  if(document.getElementById("priceArray").value.trim()){
+    const ok=applyPriceFromTextarea();
+    if(!ok) return;
+  }
+  optimizeDP();
+  renderAll();
+};
+document.getElementById("btnExport").onclick=exportCSV;
+document.getElementById("btnSave").onclick=saveProject;
+document.getElementById("btnLoad").onclick=loadProject;
+
+/** Init **/
+syncLabels();
+setTab("Preset");
+generatePresetCurves();
+renderAll();
+</script>
+</body>
+</html>
