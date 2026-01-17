@@ -19,6 +19,7 @@
     .wrap{ max-width:1280px; margin:0 auto; padding:18px; }
     h1{ margin:0 0 8px; font-size:20px; }
     .sub{ margin:0 0 14px; color:var(--muted); line-height:1.55; font-size:12px; }
+
     .grid{ display:grid; grid-template-columns: 460px 1fr; gap:14px; }
     .card{
       background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
@@ -27,6 +28,7 @@
       box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
     .card h2{ margin:0 0 10px; font-size:14px; }
+
     .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
     .tab{
       padding:8px 12px; border-radius:999px;
@@ -40,6 +42,7 @@
       border-color: rgba(102,227,255,.35);
       background: rgba(102,227,255,.16);
     }
+
     .section{
       border:1px solid rgba(255,255,255,.10);
       background: rgba(0,0,0,.16);
@@ -51,6 +54,7 @@
       margin:0 0 8px; font-size:13px; font-weight:850;
       display:flex; align-items:center; justify-content:space-between;
     }
+
     label{ display:block; font-size:12px; color:var(--muted); margin:8px 0 6px; }
     select, input[type="number"], textarea{
       width:100%;
@@ -68,6 +72,7 @@
       font-size:12px;
     }
     input[type="range"]{ width:100%; }
+
     .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     button{
@@ -81,10 +86,15 @@
       font-size:12px;
     }
     button:hover{ background: rgba(102,227,255,.18); }
+
     .muted{ color:var(--muted); }
     .bad{ color:var(--bad); }
     .good{ color:var(--good); }
-    .svgWrap{ width:100%; overflow:auto; }
+
+    /* ===== 手机友好：图表自适应，不再横向滚动 ===== */
+    .svgWrap{ width:100%; overflow:hidden; }
+    .svgWrap svg{ width:100%; height:auto; display:block; }
+
     .legend{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 0; color:var(--muted); font-size:12px; }
     .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:6px; vertical-align:middle; }
     .hr{ height:1px; background:rgba(255,255,255,.10); margin:12px 0; }
@@ -99,6 +109,10 @@
     .kpi .t{ color:var(--muted); font-size:12px; }
     .kpi .v{ font-size:16px; font-weight:900; margin-top:6px; }
 
+    /* ===== 手机友好：表格可横滑（避免挤爆） ===== */
+    #tableWrap{ overflow-x:auto; -webkit-overflow-scrolling: touch; }
+    #tableWrap table{ min-width: 760px; }
+
     table{ width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
     th,td{ border-bottom:1px solid rgba(255,255,255,.10); padding:8px 6px; text-align:right; }
     th{ color:var(--muted); font-weight:850; }
@@ -108,9 +122,18 @@
     summary{ cursor:pointer; color:var(--muted); font-size:12px; font-weight:800; }
     .smallHint{ font-size:12px; color:var(--muted); margin-top:6px; }
 
+    /* 原本的响应式：小于 1100 时变单列（手机自然生效） */
     @media (max-width: 1100px){ .grid{ grid-template-columns:1fr; } }
+
+    /* ===== 手机友好：KPI 小屏 2 列，输入区 row 变单列 ===== */
+    @media (max-width: 700px){
+      .kpi{ grid-template-columns: repeat(2, 1fr); }
+      .row{ grid-template-columns:1fr; }
+      button{ padding:11px 12px; }
+    }
   </style>
 </head>
+
 <body>
 <div class="wrap">
   <h1>光伏储能协同 EMS by 曲紫瑜</h1>
@@ -341,7 +364,8 @@
       <h2>结果</h2>
 
       <div class="svgWrap">
-        <svg id="chart1" width="920" height="320" viewBox="0 0 920 320"></svg>
+        <!-- v4.2：只保留 viewBox，宽度用 CSS 100% 自适应 -->
+        <svg id="chart1" viewBox="0 0 920 320"></svg>
       </div>
       <div class="legend">
         <span><span class="dot" style="background:#66e3ff;"></span>Load</span>
@@ -352,7 +376,7 @@
       </div>
 
       <div class="svgWrap" style="margin-top:12px;">
-        <svg id="chart2" width="920" height="260" viewBox="0 0 920 260"></svg>
+        <svg id="chart2" viewBox="0 0 920 260"></svg>
       </div>
       <div class="legend">
         <span><span class="dot" style="background:#7CFF8A;"></span>SOC</span>
@@ -417,7 +441,6 @@ function baseLoadCurve(type){
     return [1.4,1.3,1.2,1.2,1.3,1.6,2.0,2.2,2.0,1.9,2.0,2.1,2.2,2.2,2.3,2.4,2.6,3.0,3.6,3.9,3.4,2.7,2.1,1.7];
   }
   if(type==="com"){
-    // ✅ 修复：全是纯数字字面量，保证可运行
     return [1.2,1.1,1.0,1.0,1.0,1.1,1.4,2.0,2.6,3.0,3.2,3.3,3.4,3.4,3.3,3.2,3.0,2.6,2.2,1.8,1.6,1.4,1.3,1.2];
   }
   // ind
@@ -507,8 +530,8 @@ function svgPath(svg,d,opts={}){
 }
 function plotSeries(svg, series, title, yLabel){
   clearSvg(svg);
-  const W=svg.viewBox.baseVal.width||+svg.getAttribute("width");
-  const H=svg.viewBox.baseVal.height||+svg.getAttribute("height");
+  const W=(svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) ? svg.viewBox.baseVal.width : 920;
+  const H=(svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.height) ? svg.viewBox.baseVal.height : 320;
   const pad={l:52,r:18,t:18,b:34};
 
   let ymin=Infinity, ymax=-Infinity;
@@ -973,7 +996,7 @@ function exportCSV(){
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url; a.download="ems_v4_1_results.csv";
+  a.href=url; a.download="ems_v4_2_results.csv";
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
@@ -986,11 +1009,11 @@ function saveProject(){
       .filter(el=>el.id)
       .map(el=>[el.id, (el.type==="checkbox")?el.checked:el.value]))
   };
-  localStorage.setItem("ems_v4_1_project", JSON.stringify(cfg));
+  localStorage.setItem("ems_v4_2_project", JSON.stringify(cfg));
   warn("已保存到本地浏览器。");
 }
 function loadProject(){
-  const raw=localStorage.getItem("ems_v4_1_project");
+  const raw=localStorage.getItem("ems_v4_2_project");
   if(!raw){ warn("本地未找到保存项目。"); return; }
   const cfg=JSON.parse(raw);
   for(const [id,val] of Object.entries(cfg.ui||{})){
@@ -1023,7 +1046,7 @@ document.getElementById("btnTemplate").onclick=()=>{
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url; a.download="ems_v4_1_input_template.csv";
+  a.href=url; a.download="ems_v4_2_input_template.csv";
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
