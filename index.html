@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>光伏储能协同 EMS by 曲紫瑜</title>
+  <title>光伏储能协同能量管理系统 by曲紫瑜</title>
   <style>
     :root{
       --bg:#0b1220; --txt:#e7eefc; --muted:#a9b6d3;
@@ -113,7 +113,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>光伏储能协同 EMS by 曲紫瑜</h1>
+  <h1>光伏储能协同能量管理系统 by曲紫瑜</h1>
 
   <div class="grid">
     <!-- LEFT: Inputs -->
@@ -225,7 +225,7 @@
           <div>
             <label>电价模板</label>
             <select id="pricePreset">
-              <option value="tou">TOU（峰谷阶梯）</option>
+              <option value="tou">分时电价（峰谷阶梯）</option>
               <option value="rt">类实时（波动）</option>
               <option value="flat">常数电价</option>
             </select>
@@ -348,7 +348,7 @@
         <span><span class="dot" style="background:#ffd36a;"></span>PV</span>
         <span><span class="dot" style="background:#a9b6d3;"></span>Net（无储能）</span>
         <span><span class="dot" style="background:#7CFF8A;"></span>Grid import（优化后）</span>
-        <span><span class="dot" style="background:#ff6b6b;"></span>P_bat（放电+ / 充电-）</span>
+        <span><span class="dot" style="background:#ff6b6b;"></span>ESS（放电+ / 充电-）</span>
       </div>
 
       <div class="svgWrap" style="margin-top:12px;">
@@ -756,7 +756,7 @@ function optimizeDP(){
   state.soc=soc;
 
   if(!Number.isFinite(dpNext[idx(i0,0)]) || dpNext[idx(i0,0)]>=INF/2){
-    warn("当前约束可能不可行（例如：禁止上网且 PV 过大、Reserve SOC 过高、并网限额过严）。");
+    warn("当前约束可能不可行（例如：禁止上网且 PV 过大、保留SOC 过高、并网限额过严）。");
   }
 }
 
